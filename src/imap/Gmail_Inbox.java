@@ -15,7 +15,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.NoSuchProviderException;
-import javax.mail.Part;
+//import javax.mail.Part;
 import javax.mail.Session;
 import javax.mail.UIDFolder;
 
@@ -24,13 +24,13 @@ import au.com.bytecode.opencsv.CSVWriter;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
-import javax.mail.FetchProfile.Item;
+//import javax.mail.FetchProfile.Item;
 public class Gmail_Inbox {
 	private  Properties props=null;				//property object for loading the default properties
 	private static  FileInputStream in= null;			
 	private String username,password;
 	private  CSVWriter writer=null;
-	private IMAPFolder inbox=null;
+	private IMAPFolder currentFolder=null;
 	int i=0;
 	Message[] messages=null;
 	//hello world
@@ -67,18 +67,22 @@ public class Gmail_Inbox {
 	public static void main(String[] args) {
 
 		Gmail_Inbox email= new Gmail_Inbox();
-		startTime=System.currentTimeMillis();
-		email.createSession();
+	//	startTime=System.currentTimeMillis();
+		email.createSession(email);
 		System.exit(0);
 	}
+	private String folder[]=null,line[]=null;
 	public void loadDefaultProperties()
 	{
 		try {
 			props.load(in);
-			username=props.getProperty("username");
-			password=props.getProperty("password");
+			line=props.getProperty("details").split("\\#");
+			username=line[0];
+			password=line[1];
+			folder=line[2].split("\\,");
+			//password=props.getProperty("password");
 
-		//	System.out.println(username+"\n"+password);
+//			System.out.println(username+"\n"+password);
 			in.close();
 		} catch (IOException e) {
 			System.out.println("Unable to  load default values from file");
@@ -102,9 +106,9 @@ public class Gmail_Inbox {
 	 * @param host
 	 */
 	private static int start=1,end=10;
-	private static long startTime=0L,endTime=0L;
+	//private static long startTime=0L,endTime=0L;
 
-	public void createSession()
+	public void createSession(Gmail_Inbox email)
 	{
 		//		props.put("mail.imap.host", host);
 		//		props.put("mail.imap.port", "110");
@@ -124,7 +128,7 @@ public class Gmail_Inbox {
 //		System.out.println("check 2: "+(endTime-startTime));
 //		startTime=endTime;
 //		//-----------------------------------
-		writingToCSV("MessageID,UID,sender,reciever,CC,BCC,Date,Size,Subject,Attachment".split("\\,"));
+		writingToCSV("MessageID,UID,sender,reciever,CC,BCC,Date,Size,Subject,Attachment,folder".split("\\,"));
 
 
 		//----------------------------------------
@@ -145,19 +149,24 @@ public class Gmail_Inbox {
 //			System.out.println("check 4: "+(endTime-startTime));
 //			startTime=endTime;
 			//-----------------------------------
+			if(folder[0].equals("inbox"))
 			//creating a folder object and giving it the permission and open it
-			inbox= (IMAPFolder) store.getFolder("inbox");
-			inbox.open(Folder.READ_ONLY);
+			currentFolder= (IMAPFolder) store.getFolder(folder[0]);
+			else
+				if(folder[0].equals("spam"))
+					currentFolder= (IMAPFolder) store.getFolder(folder[1]);
+						
+					currentFolder.open(Folder.READ_ONLY);
 
 
 			//----------------------------------------
 //			endTime=System.currentTimeMillis();	
-			System.out.println("check 5: ");
+			System.out.println("check 5: "+currentFolder.getFullName());
 //			startTime=endTime;
 			//-----------------------------------
-			messages= inbox.getMessages();
+			messages= currentFolder.getMessages();
 
-//			System.out.println("Total no of messages-->"+inbox.getMessageCount());
+//			System.out.println("Total no of messages-->"+currentFolder.getMessageCount());
 
 			//----------------------------------------
 //			endTime=System.currentTimeMillis();	
@@ -169,16 +178,16 @@ public class Gmail_Inbox {
 			fp.add(FetchProfile.Item.ENVELOPE);
 			fp.add(FetchProfile.Item.CONTENT_INFO);
 			fp.add(username);
-			inbox.fetch(messages, fp);
+			currentFolder.fetch(messages, fp);
 		
-			int count=inbox.getMessageCount()/5;
+			int count=currentFolder.getMessageCount()/5;
 			end=count;
 			Thread[] threadArray=  new Thread[5];
 			System.out.println("---???");
 			for(i=0;i<5;i++)
 			{
 				System.out.println("Starting thread "+Thread.currentThread().getName());
-				Runnable r= new Mythread(inbox, start, end);
+				Runnable r= new Mythread(email,currentFolder, start, end);
 			threadArray[i]= new Thread(r,"Thread@"+(i+1));
 				threadArray[i].start();
 				start=end+1;
@@ -227,7 +236,7 @@ public class Gmail_Inbox {
 					break;
 			}
 			
-			inbox.close(flag);
+			currentFolder.close(flag);
 			store.close();
 
 			//----------------------------------------
@@ -256,30 +265,32 @@ public class Gmail_Inbox {
 
 class Mythread implements Runnable
 {
-	//	private Folder inbox=null;
+	//	private Folder currentFolder=null;
 	private int start,end;
 	private Multipart multipart=null;
-	private Part part=null;
+//	private Part part=null;
 	private String[] line=null;
-	private IMAPFolder inbox=null;
+	private IMAPFolder currentFolder=null;
 	int i=0;
 	Message[] messages=null;
-	private long startTime=0L,endTime=0L;
-	public Mythread(IMAPFolder folder,int start,int end)
+	//private long startTime=0L,endTime=0L;
+	private Gmail_Inbox email=null;
+	public Mythread(Gmail_Inbox email,IMAPFolder folder,int start,int end)
 	{
-		this.inbox=folder;
+		this.email=email;
+		this.currentFolder=folder;
 		this.start=start;
 		this.end=end;
-		line=new String[9];
+		line=new String[11];
 	}
 	public void run() {
 		try {
-			messages=inbox.getMessages(start, end);
+			messages=currentFolder.getMessages(start, end);
 
 			for( i=0;i<messages.length;)
 			{
 
-				line=new String[10];
+				line=new String[11];
 
 				//----------------------------------------
 //				endTime=System.currentTimeMillis();	
@@ -312,7 +323,7 @@ class Mythread implements Runnable
 //				System.out.println("check 9: "+(endTime-startTime));
 //				startTime=endTime;
 //				//-----------------------------------
-				UIDFolder uf= (UIDFolder)inbox;
+				UIDFolder uf= (UIDFolder)currentFolder;
 				long uid;
 				try {
 					uid = uf.getUID(mess);
@@ -402,7 +413,7 @@ class Mythread implements Runnable
 //						System.out.println("Found Email with Attachments");
 
 						multipart= (Multipart)m.getContent();
-						String contentType="";
+						//String contentType="";
 //						for(int j=0;j<multipart.getCount();j++)
 //						{
 //							part= multipart.getBodyPart(j);
@@ -427,6 +438,7 @@ class Mythread implements Runnable
 
 					}
 
+					line[10]=currentFolder.getFullName();
 					//----------------------------------------
 //					endTime=System.currentTimeMillis();	
 //					System.out.println("check 16: "+(endTime-startTime));
