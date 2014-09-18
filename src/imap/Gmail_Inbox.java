@@ -7,8 +7,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.mail.Address;
 import javax.mail.FetchProfile;
@@ -26,30 +24,39 @@ import au.com.bytecode.opencsv.CSVWriter;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
-
-
+import javax.mail.FetchProfile.Item;
 public class Gmail_Inbox {
 	private  Properties props=null;				//property object for loading the default properties
-	private FileInputStream in= null;			
+	private static  FileInputStream in= null;			
 	private String username,password;
-	private Multipart multipart=null;
-	private Part part=null;
-	private CSVWriter writer=null;
-	private String[] line=null;
+	private  CSVWriter writer=null;
 	private IMAPFolder inbox=null;
 	int i=0;
 	Message[] messages=null;
 	//hello world
-	public Gmail_Inbox() {
+	public Gmail_Inbox()
+	{	
 		props= new Properties();
-
 		password=username=null;
+		
 		try {
 			in= new FileInputStream(new File("config.properties"));
-			writer = new CSVWriter(new FileWriter("Details.csv",true));
-
+			loadDefaultProperties();
 		} catch (FileNotFoundException e) {
-			System.out.println("File not found");
+			System.out.println("File not found properties.config");
+			e.printStackTrace();
+		}
+		
+		createFile();
+		
+}
+	public  void  createFile() {
+			try {
+			
+			writer = new CSVWriter(new FileWriter(username+".csv",true));
+			
+		} catch (FileNotFoundException e) {
+			System.out.println(username+" file is not present");
 			e.printStackTrace();
 		} catch (IOException e) {
 			System.out.println("problem with file writer in constructor");
@@ -59,10 +66,8 @@ public class Gmail_Inbox {
 	private static String host="pop.gmail.com";
 	public static void main(String[] args) {
 
-		Thread t= new Thread(start+"");
 		Gmail_Inbox email= new Gmail_Inbox();
 		startTime=System.currentTimeMillis();
-		email.loadDefaultProperties();			//loading the properties from the file
 		email.createSession();
 		System.exit(0);
 	}
@@ -73,7 +78,7 @@ public class Gmail_Inbox {
 			username=props.getProperty("username");
 			password=props.getProperty("password");
 
-			System.out.println(username+"\n"+password);
+		//	System.out.println(username+"\n"+password);
 			in.close();
 		} catch (IOException e) {
 			System.out.println("Unable to  load default values from file");
@@ -97,16 +102,16 @@ public class Gmail_Inbox {
 	 * @param host
 	 */
 	private static int start=1,end=10;
-	private static long startTime=0L,endTime=0L,totaltime=0L;
+	private static long startTime=0L,endTime=0L;
 
 	public void createSession()
 	{
 		//		props.put("mail.imap.host", host);
 		//		props.put("mail.imap.port", "110");
 		//		props.put("mail.imap.starttls.enable", "true");
-		endTime=System.currentTimeMillis();	
-		System.out.println("check 1: "+(endTime-startTime));
-		startTime=endTime;
+//		endTime=System.currentTimeMillis();	
+		System.out.println("check 1:");
+//		startTime=endTime;
 		//----------------------
 
 
@@ -115,17 +120,17 @@ public class Gmail_Inbox {
 		IMAPStore store =null;
 
 		//----------------------------------------
-		endTime=System.currentTimeMillis();	
-		System.out.println("check 2: "+(endTime-startTime));
-		startTime=endTime;
-		//-----------------------------------
+//		endTime=System.currentTimeMillis();	
+//		System.out.println("check 2: "+(endTime-startTime));
+//		startTime=endTime;
+//		//-----------------------------------
 		writingToCSV("MessageID,UID,sender,reciever,CC,BCC,Date,Size,Subject,Attachment".split("\\,"));
 
 
 		//----------------------------------------
-		endTime=System.currentTimeMillis();	
-		System.out.println("check 3: "+(endTime-startTime));
-		startTime=endTime;
+//		endTime=System.currentTimeMillis();	
+//		System.out.println("check 3: "+(endTime-startTime));
+//		startTime=endTime;
 		//-----------------------------------
 
 		try {
@@ -136,9 +141,9 @@ public class Gmail_Inbox {
 
 
 			//----------------------------------------
-			endTime=System.currentTimeMillis();	
-			System.out.println("check 4: "+(endTime-startTime));
-			startTime=endTime;
+//			endTime=System.currentTimeMillis();	
+//			System.out.println("check 4: "+(endTime-startTime));
+//			startTime=endTime;
 			//-----------------------------------
 			//creating a folder object and giving it the permission and open it
 			inbox= (IMAPFolder) store.getFolder("inbox");
@@ -146,31 +151,33 @@ public class Gmail_Inbox {
 
 
 			//----------------------------------------
-			endTime=System.currentTimeMillis();	
-			System.out.println("check 5: "+(endTime-startTime));
-			startTime=endTime;
+//			endTime=System.currentTimeMillis();	
+			System.out.println("check 5: ");
+//			startTime=endTime;
 			//-----------------------------------
 			messages= inbox.getMessages();
 
-			System.out.println("Total no of messages-->"+inbox.getMessageCount());
+//			System.out.println("Total no of messages-->"+inbox.getMessageCount());
 
 			//----------------------------------------
-			endTime=System.currentTimeMillis();	
-			System.out.println("check 6: "+(endTime-startTime));
-			startTime=endTime;
-			//-----------------------------------
+//			endTime=System.currentTimeMillis();	
+			System.out.println("check 6: ");
+//			startTime=endTime;
+//			//-----------------------------------
 			FetchProfile fp= new FetchProfile();
 			fp.add(FetchProfile.Item.FLAGS);
 			fp.add(FetchProfile.Item.ENVELOPE);
 			fp.add(FetchProfile.Item.CONTENT_INFO);
-			fp.add("X- mailer info");
+			fp.add(username);
 			inbox.fetch(messages, fp);
-
+		
 			int count=inbox.getMessageCount()/5;
 			end=count;
 			Thread[] threadArray=  new Thread[5];
+			System.out.println("---???");
 			for(i=0;i<5;i++)
 			{
+				System.out.println("Starting thread "+Thread.currentThread().getName());
 				Runnable r= new Mythread(inbox, start, end);
 			threadArray[i]= new Thread(r,"Thread@"+(i+1));
 				threadArray[i].start();
@@ -182,7 +189,6 @@ public class Gmail_Inbox {
 			boolean flag=true,flag1=true,flag2=true,flag3=true,flag4=true;
 			while(true)
 			{
-				int j=0;
 				if(!threadArray[0].isAlive() && flag)
 				 {
 					flag=false;
@@ -225,12 +231,12 @@ public class Gmail_Inbox {
 			store.close();
 
 			//----------------------------------------
-			endTime=System.currentTimeMillis();	
-			System.out.println("check 18: "+(endTime-startTime));
-			startTime=endTime;
-			//-----------------------------------
+//			endTime=System.currentTimeMillis();	
+//			System.out.println("check 18: "+(endTime-startTime));
+//			startTime=endTime;
+//			//-----------------------------------
 			
-			System.out.println("Total time: "+System.currentTimeMillis()/60000+"mins");
+//			System.out.println("Total time: "+System.currentTimeMillis()/60000+"mins");
 
 		} catch (NoSuchProviderException e) {
 			System.out.println("There is no provider for imap");
@@ -276,10 +282,10 @@ class Mythread implements Runnable
 				line=new String[10];
 
 				//----------------------------------------
-				endTime=System.currentTimeMillis();	
-				System.out.println("check 7: "+(endTime-startTime));
-				startTime=endTime;
-				//-----------------------------------
+//				endTime=System.currentTimeMillis();	
+				System.out.println("check 7: ");
+//				startTime=endTime;
+//				//-----------------------------------
 				Message m= messages[i];
 				System.out.println("-----------------------------");
 				System.out.println("Email Number: "+ (i+1)+"--->"+Thread.currentThread().getName());
@@ -287,10 +293,10 @@ class Mythread implements Runnable
 
 
 				//----------------------------------------
-				endTime=System.currentTimeMillis();	
-				System.out.println("check 8: "+(endTime-startTime));
-				startTime=endTime;
-				//-----------------------------------
+//				endTime=System.currentTimeMillis();	
+//				System.out.println("check 8: "+(endTime-startTime));
+//				startTime=endTime;
+//				//-----------------------------------
 
 				try {
 					line[0]=mess.getMessageID();
@@ -298,33 +304,33 @@ class Mythread implements Runnable
 					System.out.println("error in message id");
 					e.printStackTrace();
 				}
-				System.out.println("Message ID: "+line[0]);
+//				System.out.println("Message ID: "+line[0]);
 
 
 				//----------------------------------------
-				endTime=System.currentTimeMillis();	
-				System.out.println("check 9: "+(endTime-startTime));
-				startTime=endTime;
-				//-----------------------------------
+//				endTime=System.currentTimeMillis();	
+//				System.out.println("check 9: "+(endTime-startTime));
+//				startTime=endTime;
+//				//-----------------------------------
 				UIDFolder uf= (UIDFolder)inbox;
 				long uid;
 				try {
 					uid = uf.getUID(mess);
 					line[1]=""+uid;
-					System.out.println("UID :" +line[1]);
+//					System.out.println("UID :" +line[1]);
 
 
 
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 10: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 10: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					line[2]=mess.getFrom()[0].toString();
-					System.out.println("Sender: "+line[2]);
+//					System.out.println("Sender: "+line[2]);
 					Address address[]=mess.getRecipients(Message.RecipientType.TO);
-					System.out.print("names of all recipents: ");
+//					System.out.print("names of all recipents: ");
 
 					if(address!=null  )
 						if(address.length<2)
@@ -336,103 +342,103 @@ class Mythread implements Runnable
 							}
 					//					else
 					//					line[3]=address[0].toString();
-					System.out.print(line[3]);
+//					System.out.print(line[3]);
 
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 11: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
-					System.out.print("\n");
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 11: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
+//					System.out.print("\n");
 					if(mess.getRecipients(Message.RecipientType.CC)!=null)
 						line[4]=mess.getRecipients(Message.RecipientType.CC).toString();
 					else
 						line[4]="NA";
-					System.out.println("CC: "+line[4]);
+//					System.out.println("CC: "+line[4]);
 
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 12: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 12: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					if(mess.getRecipients(Message.RecipientType.BCC)!=null)
 						line[5]=mess.getRecipients(Message.RecipientType.BCC).toString();
 					else
 						line[5]="NA";
-					System.out.println("BCC: "+line[5]);
+//					System.out.println("BCC: "+line[5]);
 
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 13: "+(endTime-startTime));
-					startTime=endTime;
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 13: "+(endTime-startTime));
+//					startTime=endTime;
 					//-----------------------------------
 					Date d=mess.getReceivedDate();
 					line[6]=d.toString();
-					System.out.println("timestamp: "+line[6]);
+//					System.out.println("timestamp: "+line[6]);
 					line[7]=Integer.toString(mess.getSize());
-					System.out.println("Message Size: "+line[7]);
+//					System.out.println("Message Size: "+line[7]);
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 14: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 14: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					line[8]=mess.getSubject();
-					System.out.println("Subject: "+line[8]);
+//					System.out.println("Subject: "+line[8]);
 
-					System.out.println("Type"+m.getContentType());
+//					System.out.println("Type"+m.getContentType());
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 15: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 15: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					Object messagecontent = m.getContent();
 					if(messagecontent instanceof Multipart)
 					{
-						System.out.println("Found Email with Attachments");
+//						System.out.println("Found Email with Attachments");
 
 						multipart= (Multipart)m.getContent();
 						String contentType="";
-						for(int j=0;j<multipart.getCount();j++)
-						{
-							part= multipart.getBodyPart(j);
-							contentType= part.getContentType();
-							System.out.println("Content: \n"+ contentType);
-							if(contentType.startsWith("text/plain"))
-								System.out.println("reading content of type text");
-							else
-							{
-								String filename= part.getFileName();
-
-								System.out.println("file name is: "+filename);
-							}
-						}
+//						for(int j=0;j<multipart.getCount();j++)
+//						{
+//							part= multipart.getBodyPart(j);
+//							contentType= part.getContentType();
+//							System.out.println("Content: \n"+ contentType);
+//							if(contentType.startsWith("text/plain"))
+//								System.out.println("reading content of type text");
+//							else
+//							{
+//								String filename= part.getFileName();
+//
+////								System.out.println("file name is: "+filename);
+//							}
+//						}
 
 						line[9]=Integer.toString(multipart.getCount());
 					}else
 					{
-						System.out.println("Found the mail without attachement");
+//						System.out.println("Found the mail without attachement");
 
 						line[9]=Integer.toString(0);
 
 					}
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 16: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 16: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					new Gmail_Inbox().writingToCSV(line);
 
 					//----------------------------------------
-					endTime=System.currentTimeMillis();	
-					System.out.println("check 17: "+(endTime-startTime));
-					startTime=endTime;
-					//-----------------------------------
+//					endTime=System.currentTimeMillis();	
+//					System.out.println("check 17: "+(endTime-startTime));
+//					startTime=endTime;
+//					//-----------------------------------
 					line=null;
 				} catch (MessagingException e) {
 					e.printStackTrace();
