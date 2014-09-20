@@ -28,7 +28,7 @@ import com.sun.mail.imap.IMAPStore;
 public class Gmail_Inbox {
 	private  Properties props=null;				//property object for loading the default properties
 	private static  FileInputStream in= null;			
-	private String username,password;
+	private static String username,password;
 	private  CSVWriter writer=null;
 	private IMAPFolder currentFolder=null;
 	int i=0;
@@ -40,21 +40,23 @@ public class Gmail_Inbox {
 		password=username=null;
 
 		try {
+			
 			in= new FileInputStream(new File("config.properties"));
-			loadDefaultProperties();
+		loadDefaultProperties();
 		} catch (FileNotFoundException e) {
 			System.out.println("File not found properties.config");
 			e.printStackTrace();
 		}
+		file=new File(username+".csv");
 
 		createFile();
-
+		
 	}
+	private static File file=null;
 	public  void  createFile() {
 		try {
 
-			File file=new File(username+".csv");
-			if(!file.exists())
+			
 				writer = new CSVWriter(new FileWriter(file,true));
 
 		} catch (FileNotFoundException e) {
@@ -70,6 +72,11 @@ public class Gmail_Inbox {
 
 		Gmail_Inbox email= new Gmail_Inbox();
 		//	startTime=System.currentTimeMillis();
+if(!file.exists())
+		{	email.writingToCSV("MessageID,UID,sender,reciever,CC,BCC,Date,Size,Subject,Attachment,folder".split("\\,"));
+
+		}
+
 		email.createSession(email);
 		System.exit(0);
 	}
@@ -86,6 +93,7 @@ public class Gmail_Inbox {
 
 			//			System.out.println(username+"\n"+password);
 			in.close();
+			
 		} catch (IOException e) {
 			System.out.println("Unable to  load default values from file");
 			e.printStackTrace();
@@ -109,7 +117,7 @@ public class Gmail_Inbox {
 	 */
 	private static int start=1,end=10;
 	//private static long startTime=0L,endTime=0L;
-
+private long startUID=1L,endUID=UIDFolder.LASTUID;
 	public void createSession(Gmail_Inbox email)
 	{
 		//		props.put("mail.imap.host", host);
@@ -130,9 +138,7 @@ public class Gmail_Inbox {
 		//		System.out.println("check 2: "+(endTime-startTime));
 		//		startTime=endTime;
 		//		//-----------------------------------
-		writingToCSV("MessageID,UID,sender,reciever,CC,BCC,Date,Size,Subject,Attachment,folder".split("\\,"));
-
-
+		
 		//----------------------------------------
 		//		endTime=System.currentTimeMillis();	
 		//		System.out.println("check 3: "+(endTime-startTime));
@@ -168,9 +174,10 @@ public class Gmail_Inbox {
 				System.out.println("check 5: "+currentFolder.getFullName());
 				//			startTime=endTime;
 				//-----------------------------------
-				messages= currentFolder.getMessages();
+				messages= currentFolder.getMessagesByUID(startUID, endUID);
+				
 
-				//			System.out.println("Total no of messages-->"+currentFolder.getMessageCount());
+							System.out.println("Total no of messages-->"+currentFolder.getMessageCount());
 
 				//----------------------------------------
 				//			endTime=System.currentTimeMillis();	
